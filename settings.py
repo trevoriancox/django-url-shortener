@@ -47,7 +47,6 @@ ADMIN_MEDIA_PREFIX = '/media/'
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-    #'django.contrib.staticfiles.finders.DefaultStorageFinder',
 )
 
 # Make this unique, and don't share it with anybody.
@@ -61,7 +60,7 @@ TEMPLATE_LOADERS = (
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    #'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = (
@@ -88,8 +87,3 @@ INSTALLED_APPS = (
     'shortener',
 )
 
-LOGIN_REDIRECT_URL = '/'
-
-SITE_NAME = 'localhost:8000'
-SITE_BASE_URL = 'http://' + SITE_NAME + '/'
-REQUIRE_LOGIN = True

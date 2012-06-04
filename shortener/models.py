@@ -16,9 +16,6 @@ class Link(models.Model):
     def to_base62(self):
         return base62.from_decimal(self.id)
 
-    def short_url(self):
-        return settings.SITE_BASE_URL + self.to_base62()
-
     def __unicode__(self):
         return  '%s : %s' % (self.to_base62(), self.url)
 

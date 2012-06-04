@@ -4,13 +4,47 @@ import sys
 
 
 from django.core.urlresolvers import reverse
+from django.template import Context, RequestContext, Template
 from django.test import TestCase
+from django.test.client import Client, RequestFactory
 
 from shortener.baseconv import base62, DecodingError, EncodingError
 from shortener.models import Link
 
 
+class TemplateTagTestCase(TestCase):
+    def setUp(self):
+        self.HTTP_HOST = "django.testserver"
+        self.factory = RequestFactory(HTTP_HOST = self.HTTP_HOST)
+
+    def test_short_url(self):
+        link = Link.objects.create(url='http://www.python.org/')
+        request = self.factory.get('/')
+        out = Template(
+            "{% load shortener_helpers %}"
+            "{% short_url link %}"
+        ).render(RequestContext(request, {'link': link,}))
+        self.assertEqual(
+            out, 'http://%s/%s' % (self.HTTP_HOST, link.to_base62()))
+
+    def test_short_url_with_custom(self):
+        custom = 'python'
+        link = Link.objects.create(
+            url='http://www.python.org/', id=base62.to_decimal(custom))
+        request = self.factory.get('/')
+        out = Template(
+            "{% load shortener_helpers %}"
+            "{% short_url link %}"
+        ).render(RequestContext(request, {'link': link,}))
+        self.assertEqual(
+            out, 'http://%s/%s' % (self.HTTP_HOST, link.to_base62()))
+
+
 class ViewTestCase(TestCase):
+    def setUp(self):
+        # needed for the short_url templatetag
+        self.client = Client(HTTP_HOST = "django.testserver")
+
     def test_submit(self):
         url = u'http://www.python.org/'
         response = self.client.post(reverse('submit'), {'url': url,})
@@ -49,7 +83,8 @@ class ViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'shortener/submit_failed.html')
-        self.assertFormError(response, 'link_form', 'custom', 'Invalid character: "_"')
+        self.assertFormError(
+            response, 'link_form', 'custom', 'Invalid character: "_"')
         self.assertNotIn('link', response.context)
 
     def test_submit_with_custom_no_repeats(self):
@@ -73,7 +108,8 @@ class ViewTestCase(TestCase):
             'url': url, 'custom': custom})
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'shortener/submit_failed.html')
-        self.assertFormError(response, 'link_form', 'custom', '"%s" is already taken' % custom)
+        self.assertFormError(
+            response, 'link_form', 'custom', '"%s" is already taken' % custom)
 
         self.assertNotIn('link', response.context)
 
@@ -90,7 +126,8 @@ class ViewTestCase(TestCase):
         self.assertEqual(link.usage_count, 0)
 
         # follow the short url and get a redirect
-        response = self.client.get(link.short_url())
+        response = self.client.get(reverse('follow', kwargs={
+            'base62_id': link.to_base62()}))
         self.assertRedirects(response, url, 301)
 
         # re-fetch link so that we can make sure that usage_count incremented
@@ -100,12 +137,11 @@ class ViewTestCase(TestCase):
 
 class LinkTestCase(TestCase):
     def test_create(self):
+        """
+        Verify that Link.base_62() is derived form Link.id
+        """
         link = Link.objects.create(url='http://www.python.org')
-
-        # verify that link.short_url() is derived from link.id and that
-        # the short_url() ends with the base_62() encoding of link.id
         self.assertEqual(link.to_base62(), base62.from_decimal(link.id))
-        self.assertTrue(link.short_url().endswith(link.to_base62()))
 
     def test_create_with_custom_id(self):
         """
@@ -114,7 +150,6 @@ class LinkTestCase(TestCase):
         id = 5000
         link = Link.objects.create(id=id, url='http://www.python.org')
         self.assertEqual(link.to_base62(), base62.from_decimal(id))
-        self.assertTrue(link.short_url().endswith(link.to_base62()))
 
 
 class BaseconvTestCase(TestCase):
