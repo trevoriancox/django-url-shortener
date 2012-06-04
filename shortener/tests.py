@@ -19,7 +19,7 @@ class TemplateTagTestCase(TestCase):
 
     def test_short_url(self):
         link = Link.objects.create(url='http://www.python.org/')
-        request = self.factory.get('/')
+        request = self.factory.get(reverse('index'))
         out = Template(
             "{% load shortener_helpers %}"
             "{% short_url link %}"
@@ -31,7 +31,7 @@ class TemplateTagTestCase(TestCase):
         custom = 'python'
         link = Link.objects.create(
             url='http://www.python.org/', id=base62.to_decimal(custom))
-        request = self.factory.get('/')
+        request = self.factory.get(reverse('index'))
         out = Template(
             "{% load shortener_helpers %}"
             "{% short_url link %}"
