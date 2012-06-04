@@ -1,89 +1,138 @@
-"""
-Tests for views
-"""
+import random
+import string
+import sys
 
-__test__ = {"doctest": """
 
-# Initialize by deleting all Link objects
->>> from models import Link
->>> Link.objects.all().delete()
+from django.core.urlresolvers import reverse
+from django.test import TestCase
 
->>> from django.test import Client
->>> client = Client()
+from shortener.baseconv import base62, DecodingError, EncodingError
+from shortener.models import Link
 
-# Index page
->>> r = client.get('/')
->>> r.status_code # /
-200
->>> r.template[0].name
-'shortener/index.html'
 
-# Turn off logged-in requirement and set base URL
->>> from django.conf import settings
->>> settings.REQUIRE_LOGIN = False
->>> settings.SITE_BASE_URL = 'http://uu4.us/'
+class ViewTestCase(TestCase):
+    def test_submit(self):
+        url = u'http://www.python.org/'
+        response = self.client.post(reverse('submit'), {'url': url,})
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'shortener/submit_success.html')
+        self.assertIn('link', response.context)
+        link = response.context['link']
+        self.assertIsInstance(link, Link)
+        self.assertEqual(url, link.url)
+        self.assertEqual(link.usage_count, 0)
+        self.assertEqual(base62.from_decimal(link.id), link.to_base62())
 
-# Empty submission should forward to error page
->>> r = client.get('/submit/')
->>> r.status_code # /submit/
-200
->>> r.template[0].name # /submit/
-'shortener/submit_failed.html'
+    def test_submit_with_custom(self):
+        url = u'http://www.python.org/'
+        custom = 'mylink'
+        response = self.client.post(reverse('submit'), {
+            'url': url, 'custom': custom})
 
-# Submit a URL
->>> url = 'http://www.google.com/'
->>> r = client.get('/submit/', {'u': url})
->>> r.status_code # /submit/u?=http%3A%2F%2Fwww.google.com%2F
-200
->>> r.template[0].name
-'shortener/submit_success.html'
->>> link = r.context[0]['link']
->>> link.to_base62()
-'B'
->>> link.short_url()
-'http://uu4.us/B'
->>> link_from_db = Link.objects.get(url = url)
->>> base62 = link_from_db.to_base62()
->>> base62
-'B'
->>> link_from_db.usage_count
-0
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'shortener/submit_success.html')
+        self.assertIn('link', response.context)
+        link = response.context['link']
+        self.assertIsInstance(link, Link)
+        self.assertEqual(url, link.url)
+        self.assertEqual(link.usage_count, 0)
+        self.assertEqual(link.to_base62(), custom)
 
-# Short URL for previously submitted URL
->>> r = client.get('/' + base62)
->>> r.status_code # '/' + base62
-301
->>> r['Location']
-'http://www.google.com/'
+    def test_submit_with_bad_character_in_custom(self):
+        """
+        Submit with an invalid character in custom
+        """
+        url = u'http://www.python.org/'
+        custom = 'my_link_bad_chars:##$#$%^$&%^**'
+        response = self.client.post(reverse('submit'), {
+            'url': url, 'custom': custom})
 
-# Invalid URL should get a 404
->>> r = client.get('/INVALID')
->>> r.status_code # /INVALID
-404
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'shortener/submit_failed.html')
+        self.assertFormError(response, 'link_form', 'custom', 'Invalid character: "_"')
+        self.assertNotIn('link', response.context)
 
-# Index now shows link in recent_links / most_popular_links
->>> r = client.get('/')
->>> r.status_code # /
-200
->>> r.template[0].name
-'shortener/index.html'
->>> context = r.context[0]
->>> len(context['recent_links'])
-1
->>> len(context['most_popular_links'])
-1
+    def test_submit_with_custom_no_repeats(self):
+        url = u'http://www.python.org/'
+        custom = 'mylink'
 
-# Get info on Link
->>> r = client.get('/info/' + base62)
->>> r.status_code # info
-200
->>> r.template[0].name
-'shortener/link_info.html'
->>> link = r.context[0]['link']
->>> link.url
-u'http://www.google.com/'
->>> link.usage_count # Usage count should be 1 now
-1
+        # first time should succeed
+        response = self.client.post(reverse('submit'), {
+            'url': url, 'custom': custom})
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'shortener/submit_success.html')
+        self.assertIn('link', response.context)
+        link = response.context['link']
+        self.assertIsInstance(link, Link)
+        self.assertEqual(url, link.url)
+        self.assertEqual(link.usage_count, 0)
+        self.assertEqual(link.to_base62(), custom)
 
-"""}
+        # second time should be an error
+        response = self.client.post(reverse('submit'), {
+            'url': url, 'custom': custom})
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'shortener/submit_failed.html')
+        self.assertFormError(response, 'link_form', 'custom', '"%s" is already taken' % custom)
 
+        self.assertNotIn('link', response.context)
+
+    def test_follow(self):
+        url = u'http://www.python.org/'
+        response = self.client.post(reverse('submit'), {'url': url,})
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'shortener/submit_success.html')
+
+        link = response.context['link']
+        self.assertIsInstance(link, Link)
+        self.assertEqual(url, link.url)
+        self.assertEqual(base62.from_decimal(link.id), link.to_base62())
+        self.assertEqual(link.usage_count, 0)
+
+        # follow the short url and get a redirect
+        response = self.client.get(link.short_url())
+        self.assertRedirects(response, url, 301)
+
+        # re-fetch link so that we can make sure that usage_count incremented
+        link = Link.objects.get(id=link.id)
+        self.assertEqual(link.usage_count, 1)
+
+
+class LinkTestCase(TestCase):
+    def test_create(self):
+        link = Link.objects.create(url='http://www.python.org')
+
+        # verify that link.short_url() is derived from link.id and that
+        # the short_url() ends with the base_62() encoding of link.id
+        self.assertEqual(link.to_base62(), base62.from_decimal(link.id))
+        self.assertTrue(link.short_url().endswith(link.to_base62()))
+
+    def test_create_with_custom_id(self):
+        """
+        Create a shortened URL with non-default id specified
+        """
+        id = 5000
+        link = Link.objects.create(id=id, url='http://www.python.org')
+        self.assertEqual(link.to_base62(), base62.from_decimal(id))
+        self.assertTrue(link.short_url().endswith(link.to_base62()))
+
+
+class BaseconvTestCase(TestCase):
+    def test_symmetry_int(self):
+        random_int = random.randint(0, sys.maxint)
+        encoded_int = base62.from_decimal(random_int)
+        self.assertEqual(random_int, base62.to_decimal(encoded_int))
+
+    def test_encoding_non_int_fails(self):
+        try:
+            encoding = base62.from_decimal(string.letters)
+        except EncodingError, e:
+            err = e
+        self.assertIsInstance(err, EncodingError)
+
+    def test_decoding_non_str_fails(self):
+        try:
+            decoding = base62.to_decimal(sys.maxint)
+        except DecodingError, e:
+            err = e
+        self.assertIsInstance(err, DecodingError)

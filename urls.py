@@ -1,17 +1,13 @@
-from django.conf.urls.defaults import *
+from django.conf.urls.defaults import include, patterns, url
 from django.contrib import admin
 from django.conf import settings
 
 admin.autodiscover()
 
-urlpatterns = patterns(
-    '',
-    (r'^$', 'shortener.views.index'),    
-    (r'^admin/(.*)', admin.site.root),    
-    (r'^submit/$', 'shortener.views.submit'),
-    (r'^(?P<base62_id>\w+)$', 'shortener.views.follow'),
-    (r'^info/(?P<base62_id>\w+)$', 'shortener.views.info'),    
+urlpatterns = patterns('',
+    url(r'^admin/', include(admin.site.urls)),
+    url(r'', include('shortener.urls')),
 
-    (r'^static/(?P<path>.*)$', 'django.views.static.serve',
-      {'document_root': settings.STATIC_DOC_ROOT}),
+    url(r'^static/(?P<path>.*)$', 'django.views.static.serve',
+      {'document_root': settings.STATIC_ROOT}),
 )
