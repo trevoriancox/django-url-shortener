@@ -9,6 +9,7 @@ from django.test import TestCase
 from django.test.client import Client, RequestFactory
 
 from shortener.baseconv import base62, DecodingError, EncodingError
+from shortener.forms import too_long_error
 from shortener.models import Link
 
 
@@ -62,7 +63,6 @@ class ViewTestCase(TestCase):
         custom = 'mylink'
         response = self.client.post(reverse('submit'), {
             'url': url, 'custom': custom})
-
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'shortener/submit_success.html')
         self.assertIn('link', response.context)
@@ -110,8 +110,16 @@ class ViewTestCase(TestCase):
         self.assertTemplateUsed(response, 'shortener/submit_failed.html')
         self.assertFormError(
             response, 'link_form', 'custom', '"%s" is already taken' % custom)
-
         self.assertNotIn('link', response.context)
+
+    def test_submit_long_custom(self):
+        url = u'http://www.python.org/'
+        custom = 'MyLinkCustomLinkThatIsTooLongooooooooohYea'
+        response = self.client.post(reverse('submit'), {
+            'url': url, 'custom': custom})
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'shortener/submit_failed.html')
+        self.assertFormError(response, 'link_form', 'custom', too_long_error)
 
     def test_follow(self):
         url = u'http://www.python.org/'

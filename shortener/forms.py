@@ -3,6 +3,8 @@ from django import forms
 from shortener.baseconv import base62
 from shortener.models import Link
 
+too_long_error = "Your custom name is too long. Are you sure you wanted a shortening service? :)"
+
 class LinkSubmitForm(forms.Form):
     url = forms.URLField(
         label='URL to be shortened',)
@@ -26,7 +28,5 @@ class LinkSubmitForm(forms.Form):
             if Link.objects.filter(id=id).exists():
                 raise forms.ValidationError('"%s" is already taken' % custom)
         except OverflowError:
-            raise forms.ValidationError(
-                "Your custom name is too long. Are you sure you wanted a "
-                "shortening service? :)")
+            raise forms.ValidationError(too_long_error)
         return custom
