@@ -84,7 +84,7 @@ class ViewTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'shortener/submit_failed.html')
         self.assertFormError(
-            response, 'link_form', 'custom', 'Invalid character: "_"')
+            response, 'link_form', 'custom', u'Invalid character for encoding: _')
         self.assertNotIn('link', response.context)
 
     def test_submit_with_custom_no_repeats(self):

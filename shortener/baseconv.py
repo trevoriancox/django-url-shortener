@@ -39,7 +39,7 @@ class BaseConverter(object):
             raise DecodingError('%s is not a basestring()' % s)
         for char in s:
             if char not in self.digits:
-                raise EncodingError('Invalid character for encoding: %s' % digit)
+                raise EncodingError('Invalid character for encoding: %s' % char)
         return int(self.convert(s, self.digits, self.decimal_digits))
 
     def convert(number, fromdigits, todigits):
