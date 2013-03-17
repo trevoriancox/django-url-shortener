@@ -5,7 +5,7 @@ This is URL shortening application written using the Django framework. It began
 as a fork of https://github.com/nileshk/url-shortener, but now includes
 functionality for creating custom shortened URLs.
 
-The project has been updated for Django 1.3 and now includes an extensive
+The project has also been updated for Django 1.4 and now includes an extensive
 tests.py.
 
 Features
