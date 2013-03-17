@@ -5,6 +5,7 @@ from django.conf import settings
 
 from shortener.baseconv import base62
 
+
 class Link(models.Model):
     """
     Model that represents a shortened URL

@@ -7,4 +7,3 @@ urlpatterns = patterns('shortener.views',
     url(r'^submit/$', 'submit', name='submit'),
     url(r'^(?P<base62_id>\w+)$', 'follow', name='follow'),
 )
-

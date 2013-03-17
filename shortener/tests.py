@@ -16,7 +16,7 @@ from shortener.models import Link
 class TemplateTagTestCase(TestCase):
     def setUp(self):
         self.HTTP_HOST = "django.testserver"
-        self.factory = RequestFactory(HTTP_HOST = self.HTTP_HOST)
+        self.factory = RequestFactory(HTTP_HOST=self.HTTP_HOST)
 
     def test_short_url(self):
         link = Link.objects.create(url='http://www.python.org/')
@@ -24,7 +24,7 @@ class TemplateTagTestCase(TestCase):
         out = Template(
             "{% load shortener_helpers %}"
             "{% short_url link %}"
-        ).render(RequestContext(request, {'link': link,}))
+        ).render(RequestContext(request, {'link': link}))
         self.assertEqual(
             out, 'http://%s/%s' % (self.HTTP_HOST, link.to_base62()))
 
@@ -36,7 +36,7 @@ class TemplateTagTestCase(TestCase):
         out = Template(
             "{% load shortener_helpers %}"
             "{% short_url link %}"
-        ).render(RequestContext(request, {'link': link,}))
+        ).render(RequestContext(request, {'link': link}))
         self.assertEqual(
             out, 'http://%s/%s' % (self.HTTP_HOST, link.to_base62()))
 
@@ -44,11 +44,11 @@ class TemplateTagTestCase(TestCase):
 class ViewTestCase(TestCase):
     def setUp(self):
         # needed for the short_url templatetag
-        self.client = Client(HTTP_HOST = "django.testserver")
+        self.client = Client(HTTP_HOST="django.testserver")
 
     def test_submit(self):
         url = u'http://www.python.org/'
-        response = self.client.post(reverse('submit'), {'url': url,})
+        response = self.client.post(reverse('submit'), {'url': url})
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'shortener/submit_success.html')
         self.assertIn('link', response.context)
@@ -123,7 +123,7 @@ class ViewTestCase(TestCase):
 
     def test_follow(self):
         url = u'http://www.python.org/'
-        response = self.client.post(reverse('submit'), {'url': url,})
+        response = self.client.post(reverse('submit'), {'url': url})
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'shortener/submit_success.html')
 

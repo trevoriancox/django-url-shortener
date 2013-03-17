@@ -26,7 +26,7 @@ def info(request, base62_id):
     View which shows information on a particular link
     """
     link = get_object_or_404(Link, id=base62.to_decimal(base62_id))
-    return render(request, 'shortener/link_info.html', {'link': link,})
+    return render(request, 'shortener/link_info.html', {'link': link})
 
 
 @require_POST
@@ -55,6 +55,5 @@ def index(request):
     values = {
         'link_form': LinkSubmitForm(),
         'recent_links': Link.objects.all().order_by('-date_submitted')[:5],
-        'most_popular_links': Link.objects.all().order_by('-usage_count')[:5],}
+        'most_popular_links': Link.objects.all().order_by('-usage_count')[:5]}
     return render(request, 'shortener/index.html', values)
-

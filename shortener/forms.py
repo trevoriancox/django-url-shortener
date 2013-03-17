@@ -3,7 +3,9 @@ from django import forms
 from shortener.baseconv import base62, EncodingError
 from shortener.models import Link
 
+
 too_long_error = "Your custom name is too long. Are you sure you wanted a shortening service? :)"
+
 
 class LinkSubmitForm(forms.Form):
     url = forms.URLField(
