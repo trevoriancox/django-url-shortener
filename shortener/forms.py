@@ -1,6 +1,6 @@
 from django import forms
 
-from shortener.baseconv import base62, EncodingError
+from shortener.baseconv import base62, DecodingError
 from shortener.models import Link
 
 
@@ -21,7 +21,7 @@ class LinkSubmitForm(forms.Form):
 
         try:
             id = base62.to_decimal(custom)
-        except EncodingError as e:
+        except DecodingError as e:
             raise forms.ValidationError(e)
 
         # make sure this custom alias is not alrady taken

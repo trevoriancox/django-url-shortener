@@ -162,20 +162,29 @@ class LinkTestCase(TestCase):
 
 class BaseconvTestCase(TestCase):
     def test_symmetry_int(self):
-        random_int = random.randint(0, sys.maxint)
-        encoded_int = base62.from_decimal(random_int)
-        self.assertEqual(random_int, base62.to_decimal(encoded_int))
+        """
+        Verify symmetry for encoding/decoding values
+        """
+        for x in xrange(10000):
+            random_int = random.randint(0, sys.maxint)
+            encoded_int = base62.from_decimal(random_int)
+            self.assertEqual(random_int, base62.to_decimal(encoded_int))
 
     def test_encoding_non_int_fails(self):
-        try:
-            encoding = base62.from_decimal(string.letters)
-        except EncodingError, e:
-            err = e
-        self.assertIsInstance(err, EncodingError)
+        """
+        Verify that calling from_decimal() on letters raises an EncodingError
+        """
+        self.assertRaises(EncodingError, base62.from_decimal, string.letters)
 
     def test_decoding_non_str_fails(self):
-        try:
-            decoding = base62.to_decimal(sys.maxint)
-        except DecodingError, e:
-            err = e
-        self.assertIsInstance(err, DecodingError)
+        """
+        Verify that
+        """
+        self.assertRaises(DecodingError, base62.to_decimal, sys.maxint)
+
+    def test_illgal_character(self):
+        """
+        Verify that trying to encode a character that is not within base62
+        raises an EncodingError
+        """
+        self.assertRaises(DecodingError, base62.to_decimal, '@@@@')

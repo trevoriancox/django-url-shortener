@@ -32,7 +32,7 @@ def info(request, base62_id):
 @require_POST
 def submit(request):
     """
-    View for submitting a URL
+    View for submitting a URL to be shortened
     """
     form = LinkSubmitForm(request.POST)
     if form.is_valid():

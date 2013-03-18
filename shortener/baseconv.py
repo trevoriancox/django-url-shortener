@@ -1,29 +1,35 @@
-"""
-Convert numbers from base 10 integers to base X strings and back again.
-
-Original: http://www.djangosnippets.org/snippets/1431/
-
-Sample usage:
-
->>> base20 = BaseConverter('0123456789abcdefghij')
->>> base20.from_decimal(1234)
-'31e'
->>> base20.to_decimal('31e')
-1234
-"""
 import numbers
 import string
 
 
 class EncodingError(ValueError):
+    """
+    Error in encoding from base 10 to base X
+    """
     pass
 
 
 class DecodingError(ValueError):
+    """
+    Error in decoding from base X to base 10
+    """
     pass
 
 
 class BaseConverter(object):
+    """
+    Convert numbers from base 10 integers to base X strings and back again.
+
+    Original: http://www.djangosnippets.org/snippets/1431/
+
+    Sample usage:
+
+    >>> base20 = BaseConverter('0123456789abcdefghij')
+    >>> base20.from_decimal(1234)
+    '31e'
+    >>> base20.to_decimal('31e')
+    1234
+    """
     decimal_digits = string.digits
 
     def __init__(self, digits):
@@ -39,9 +45,10 @@ class BaseConverter(object):
             raise DecodingError('%s is not a basestring()' % s)
         for char in s:
             if char not in self.digits:
-                raise EncodingError('Invalid character for encoding: %s' % char)
+                raise DecodingError('Invalid character for encoding: %s' % char)
         return int(self.convert(s, self.digits, self.decimal_digits))
 
+    @staticmethod
     def convert(number, fromdigits, todigits):
         # Based on http://code.activestate.com/recipes/111286/
         if str(number)[0] == '-':
@@ -67,9 +74,6 @@ class BaseConverter(object):
             if neg:
                 res = '-' + res
         return res
-    convert = staticmethod(convert)
 
 
-bin = BaseConverter('01')
-hexconv = BaseConverter(string.hexdigits)
 base62 = BaseConverter(string.digits + string.letters)
