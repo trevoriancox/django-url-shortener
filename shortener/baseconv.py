@@ -43,8 +43,8 @@ class BaseConverter(object):
     def to_decimal(self, s):
         if not isinstance(s, basestring):
             raise DecodingError('%s is not a basestring()' % s)
-        for char in s:
-            if char not in self.digits:
+        for index, char in enumerate(s):
+            if char not in self.digits and not char == '-' and not index == 0:
                 raise DecodingError('Invalid character for encoding: %s' % char)
         return int(self.convert(s, self.digits, self.decimal_digits))
 

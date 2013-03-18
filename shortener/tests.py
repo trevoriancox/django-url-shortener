@@ -204,14 +204,31 @@ class LinkTestCase(TestCase):
         link = Link.objects.create(id=id, url='http://www.python.org')
         self.assertEqual(link.to_base62(), base62.from_decimal(id))
 
+    def test_unicode(self):
+        """
+        unicode test
+        """
+        url = 'http://www.python.org'
+        link = Link.objects.create(url=url)
+        self.assertTrue(url in unicode(link))
+
 
 class BaseconvTestCase(TestCase):
-    def test_symmetry_int(self):
+    def test_symmetry_positive_int(self):
         """
         symmetry for encoding/decoding values
         """
         for x in xrange(1000):
             random_int = random.randint(0, sys.maxint)
+            encoded_int = base62.from_decimal(random_int)
+            self.assertEqual(random_int, base62.to_decimal(encoded_int))
+
+    def test_symmetry_negative_int(self):
+        """
+        symmetry for negative numbers
+        """
+        for x in xrange(1000):
+            random_int = random.randint(-1 * sys.maxint - 1, 0)
             encoded_int = base62.from_decimal(random_int)
             self.assertEqual(random_int, base62.to_decimal(encoded_int))
 
