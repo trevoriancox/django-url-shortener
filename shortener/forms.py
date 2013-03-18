@@ -19,12 +19,13 @@ class LinkSubmitForm(forms.Form):
         if not custom:
             return
 
+        # they specified a custom url to shorten to. verify that we can decode
+        # that shortened form, and that it's not already taken
         try:
             id = base62.to_decimal(custom)
         except DecodingError as e:
             raise forms.ValidationError(e)
 
-        # make sure this custom alias is not alrady taken
         try:
             if Link.objects.filter(id=id).exists():
                 raise forms.ValidationError('"%s" is already taken' % custom)
