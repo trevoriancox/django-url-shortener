@@ -12,13 +12,19 @@ from shortener.baseconv import base62, DecodingError, EncodingError
 from shortener.forms import too_long_error
 from shortener.models import Link
 
+# needed for the short_url templatetag
+CUSTOM_HTTP_HOST = 'django.testserver'
+
 
 class TemplateTagTestCase(TestCase):
     def setUp(self):
-        self.HTTP_HOST = "django.testserver"
+        self.HTTP_HOST = CUSTOM_HTTP_HOST
         self.factory = RequestFactory(HTTP_HOST=self.HTTP_HOST)
 
     def test_short_url(self):
+        """
+        the short_url templatetag works with auto-generated links
+        """
         link = Link.objects.create(url='http://www.python.org/')
         request = self.factory.get(reverse('index'))
         out = Template(
@@ -29,6 +35,9 @@ class TemplateTagTestCase(TestCase):
             out, 'http://%s/%s' % (self.HTTP_HOST, link.to_base62()))
 
     def test_short_url_with_custom(self):
+        """
+        the short_url templatetag works with custom links
+        """
         custom = 'python'
         link = Link.objects.create(
             url='http://www.python.org/', id=base62.to_decimal(custom))
@@ -43,10 +52,12 @@ class TemplateTagTestCase(TestCase):
 
 class ViewTestCase(TestCase):
     def setUp(self):
-        # needed for the short_url templatetag
-        self.client = Client(HTTP_HOST="django.testserver")
+        self.client = Client(HTTP_HOST=CUSTOM_HTTP_HOST)
 
     def test_submit(self):
+        """
+        submit view with auto-generated short url
+        """
         url = u'http://www.python.org/'
         response = self.client.post(reverse('submit'), {'url': url})
         self.assertEqual(response.status_code, 200)
@@ -59,6 +70,9 @@ class ViewTestCase(TestCase):
         self.assertEqual(base62.from_decimal(link.id), link.to_base62())
 
     def test_submit_with_custom(self):
+        """
+        submit view with a custom short url
+        """
         url = u'http://www.python.org/'
         custom = 'mylink'
         response = self.client.post(reverse('submit'), {
@@ -74,7 +88,7 @@ class ViewTestCase(TestCase):
 
     def test_submit_with_bad_character_in_custom(self):
         """
-        Submit with an invalid character in custom
+        submit view with an invalid character in custom
         """
         url = u'http://www.python.org/'
         custom = 'my_link_bad_chars:##$#$%^$&%^**'
@@ -88,6 +102,9 @@ class ViewTestCase(TestCase):
         self.assertNotIn('link', response.context)
 
     def test_submit_with_custom_no_repeats(self):
+        """
+        submitting a request w/a custom name fails if it is already taken
+        """
         url = u'http://www.python.org/'
         custom = 'mylink'
 
@@ -113,8 +130,11 @@ class ViewTestCase(TestCase):
         self.assertNotIn('link', response.context)
 
     def test_submit_long_custom(self):
+        """
+        if a custom shortened url is too long we return an error
+        """
         url = u'http://www.python.org/'
-        custom = 'MyLinkCustomLinkThatIsTooLongooooooooohYea'
+        custom = 'MyLinkCustomLinkThatIsTooLongOoooooooohYea'
         response = self.client.post(reverse('submit'), {
             'url': url, 'custom': custom})
         self.assertEqual(response.status_code, 200)
@@ -122,6 +142,9 @@ class ViewTestCase(TestCase):
         self.assertFormError(response, 'link_form', 'custom', too_long_error)
 
     def test_follow(self):
+        """
+        the follow view on a valid url
+        """
         url = 'http://www.python.org/'
         link = Link.objects.create(url=url)
         self.assertEqual(link.usage_count, 0)
@@ -136,12 +159,18 @@ class ViewTestCase(TestCase):
         self.assertEqual(link.usage_count, 1)
 
     def test_follow_404(self):
+        """
+        follow on an unknown url should return 404
+        """
         url = u'http://www.python.org/'
         response = self.client.get(reverse('follow', kwargs={
             'base62_id': "fails"}))
         self.assertEqual(response.status_code, 404)
 
     def test_info(self):
+        """
+        the info view on a valid url
+        """
         url = u'http://www.python.org/'
         link = Link.objects.create(url=url)
         response = self.client.get(reverse('info', kwargs={
@@ -150,6 +179,9 @@ class ViewTestCase(TestCase):
         self.assertTemplateUsed(response, 'shortener/link_info.html')
 
     def test_info_404(self):
+        """
+        info on an unknown url should return 404
+        """
         url = u'http://www.python.org/'
         response = self.client.get(reverse('info', kwargs={
             'base62_id': "fails"}))
@@ -159,14 +191,14 @@ class ViewTestCase(TestCase):
 class LinkTestCase(TestCase):
     def test_create(self):
         """
-        Verify that Link.base_62() is derived form Link.id
+        Link.base_62() is derived from auto-generated Link.id
         """
         link = Link.objects.create(url='http://www.python.org')
         self.assertEqual(link.to_base62(), base62.from_decimal(link.id))
 
     def test_create_with_custom_id(self):
         """
-        Create a shortened URL with non-default id specified
+        Link.base_62() is derived from custom Link.id
         """
         id = 5000
         link = Link.objects.create(id=id, url='http://www.python.org')
@@ -176,7 +208,7 @@ class LinkTestCase(TestCase):
 class BaseconvTestCase(TestCase):
     def test_symmetry_int(self):
         """
-        Verify symmetry for encoding/decoding values
+        symmetry for encoding/decoding values
         """
         for x in xrange(1000):
             random_int = random.randint(0, sys.maxint)
@@ -185,19 +217,19 @@ class BaseconvTestCase(TestCase):
 
     def test_encoding_non_int_fails(self):
         """
-        Verify that calling from_decimal() on letters raises an EncodingError
+        calling from_decimal() on letters raises an EncodingError
         """
         self.assertRaises(EncodingError, base62.from_decimal, string.letters)
 
     def test_decoding_non_str_fails(self):
         """
-        Verify that
+        decoding a non-str should fail with DecodingError
         """
         self.assertRaises(DecodingError, base62.to_decimal, sys.maxint)
 
     def test_illgal_character(self):
         """
-        Verify that trying to encode a character that is not within base62
-        raises an EncodingError
+        trying to encode a character that is not within base62 raises an
+        EncodingError
         """
         self.assertRaises(DecodingError, base62.to_decimal, '@@@@')
