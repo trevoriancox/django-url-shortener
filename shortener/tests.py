@@ -122,15 +122,8 @@ class ViewTestCase(TestCase):
         self.assertFormError(response, 'link_form', 'custom', too_long_error)
 
     def test_follow(self):
-        url = u'http://www.python.org/'
-        response = self.client.post(reverse('submit'), {'url': url})
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'shortener/submit_success.html')
-
-        link = response.context['link']
-        self.assertIsInstance(link, Link)
-        self.assertEqual(url, link.url)
-        self.assertEqual(base62.from_decimal(link.id), link.to_base62())
+        url = 'http://www.python.org/'
+        link = Link.objects.create(url=url)
         self.assertEqual(link.usage_count, 0)
 
         # follow the short url and get a redirect
@@ -141,6 +134,26 @@ class ViewTestCase(TestCase):
         # re-fetch link so that we can make sure that usage_count incremented
         link = Link.objects.get(id=link.id)
         self.assertEqual(link.usage_count, 1)
+
+    def test_follow_404(self):
+        url = u'http://www.python.org/'
+        response = self.client.get(reverse('follow', kwargs={
+            'base62_id': "fails"}))
+        self.assertEqual(response.status_code, 404)
+
+    def test_info(self):
+        url = u'http://www.python.org/'
+        link = Link.objects.create(url=url)
+        response = self.client.get(reverse('info', kwargs={
+            'base62_id': link.to_base62()}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'shortener/link_info.html')
+
+    def test_info_404(self):
+        url = u'http://www.python.org/'
+        response = self.client.get(reverse('info', kwargs={
+            'base62_id': "fails"}))
+        self.assertEqual(response.status_code, 404)
 
 
 class LinkTestCase(TestCase):
@@ -165,7 +178,7 @@ class BaseconvTestCase(TestCase):
         """
         Verify symmetry for encoding/decoding values
         """
-        for x in xrange(10000):
+        for x in xrange(1000):
             random_int = random.randint(0, sys.maxint)
             encoded_int = base62.from_decimal(random_int)
             self.assertEqual(random_int, base62.to_decimal(encoded_int))
