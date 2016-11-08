@@ -5,7 +5,7 @@
   </head>
 
   <body>
-      <h1><a href="{% url index %}">{{ request.META.HTTP_HOST }}</a></h1>
+      <h1><a href="{% url 'index' %}">{{ request.META.HTTP_HOST }}</a></h1>
       <hr/>
       {% block content %}{% endblock %}
 
@@ -15,7 +15,7 @@
       {% block bookmarklet %}
       <br/>
       Bookmarklet (drag this to your bookmarks bar):<br/>
-      <a href="javascript:(function(){var a=window,b=document,c=encodeURIComponent;d=a.open(&#39;//{{ request.META.HTTP_HOST }}/submit/?u=&#39;+c(b.location));})();">Shorten with {{ request.META.HTTP_HOST }}</a>
+      <a href="javascript:(function(){var a=window,b=document,c=encodeURIComponent;d=a.open(&#39;//{{ request.META.HTTP_HOST }}{% url 'index' %}submit/?u=&#39;+c(b.location));})();">Shorten with {{ request.META.HTTP_HOST }}</a>
       {% endblock %}
 
     {% block extra_body %}{% endblock %}
